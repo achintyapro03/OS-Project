@@ -6,12 +6,6 @@
 #include <time.h>
 #include <unistd.h>
 
-void randomString(char str[]){
-    srand(time(0));
-    char option[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    for(int i = 0; i < 8; i++)
-        str[i] = option[rand() % 62];
-}
 
 int main(){
     user u;
@@ -20,9 +14,7 @@ int main(){
     u.noOfOrders = 0;
     strcpy(u.userName, "admin");
     strcpy(u.password, "password");
-    char userId[8];
-    randomString(userId);
-    strcpy(u.userId, userId);
+    strcpy(u.userId, "00000000");    
 
     int fd = open("DB/userTable", O_WRONLY );
     if(fd==-1) perror(" ");

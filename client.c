@@ -128,19 +128,20 @@ int editCart(char * req){
     // printf("%c", choice);
     // keyWait();
     if(choice == 'a'){
+        strcat(req, "a");
         strcat(req, " ");
         strcat(req, prodId);
-        strcat(req, " 0 0");    
+        strcat(req, " 0");    
     }
     else if(choice == 'b'){
         printf("Enter the new quantity : ");
         char qty[10];
         scanf("%s", qty);
+        strcat(req, "b");
         strcat(req, " ");
         strcat(req, prodId);
         strcat(req, " ");
         strcat(req, qty); 
-        strcat(req, " 0");  
     }
     else{
         return -1;
@@ -268,7 +269,7 @@ int home(int time, char req[], char userId[], int isAdmin){
         // printf("%s\n", req);
         scanf("%d", &choice);
         if(choice == 1) 
-            strcat(req, " 1 0 0");
+            strcat(req, " 1 0 0 0");
             // dispProd();
         else if(choice == 2){
             char x[30];
@@ -311,7 +312,7 @@ int home(int time, char req[], char userId[], int isAdmin){
             printf("Enter \"yes\" to proceed: ");
             scanf("%s", confirm);
 
-            if(strcmp(confirm, "yes"))
+            if(strcmp(confirm, "yes") == 0)
                 strcat(req, " 6 0 0 0");
             else
                 return -1;
@@ -368,12 +369,12 @@ int main(){
                 loggedIn = 1;
                 char params[2][20];
                 split(res, params);
-                printf("params: %s\n", params[0]);
-                printf("params: %s\n", params[1]);
+                // printf("params: %s\n", params[0]);
+                // printf("params: %s\n", params[1]);
 
                 strcpy(userId, params[0]);
                 isAdmin = (int) params[1][0] - 48;
-                printf("user : %s\n", userId);
+                // printf("user : %s\n", userId);
                 memset(params[0],0,strlen(params[0]));
                 memset(params[1],0,strlen(params[1]));
             }
@@ -386,9 +387,9 @@ int main(){
             keyWait();
         }
         else{
-            printf("%s\n", userId);    
+            // printf("%s\n", userId);    
             int out = home(0, req, userId, isAdmin);
-            printf("%s\n", userId);    
+            // printf("%s\n", userId);    
             printf("%s\n", req);
             if(out == -1) continue;
             else if(out == -999) {
