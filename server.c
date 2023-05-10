@@ -24,59 +24,10 @@ void spaceWrite(int sd, char str[], int len2){
     char temp[len2];
     strcpy(temp, str);
     strcat(temp, new);
-    // printf("%s\n", temp);
     write(sd, temp, len2);
     memset(new,0,strlen(new));
     memset(temp,0,strlen(temp));
 }
-
-void spilt(char str[], char params[5][20])
-{
-    char temp[100];
-    strcpy(temp, str);
-    strcat(temp, " ");
-    int count = 0;
-    int idx = 0;
-    for(int i = 0; i < strlen(str); i++){
-        if(str[i] == ' '){
-            count++;
-            idx = 0;
-        }
-        else{
-            params[count][idx] = str[i];
-            idx++;
-        }
-    }
-
-    // for(int i =0; i<5; i++){
-    //     printf("%s rob\n", params[i]);
-    // }
-}
-
-char *itoa(int val, int base, char str[])
-{
-
-    int i = 30;
-
-    for (; val && i; --i, val /= base)
-
-        str[i] = "0123456789abcdef"[val % base];
-}
-
-void strLower(char str[])
-{
-    for (int i = 0; i < strlen(str); i++)
-        str[i] = tolower(str[i]);
-}
-
-// void randomString(char str[])
-// {
-//     srand(time(0));
-//     char option[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-//     for (int i = 0; i < 8; i++)
-//         str[i] = option[rand() % 62];
-//     str[8] = '\0';
-// }
 
 void idGenerator(int cond, char id[]){
     if(!cond){
@@ -147,32 +98,21 @@ int checkInDB(char key[], char DBname[]){
                 return 1;
             }
     }
-    // else if(strcmp(DBname, "cartDB")==0){
-    //     cart temp;
-    //     while (read(fd, &temp, sizeof(cart)))
-    //         if (strcmp(temp.prodId, key) == 0)
-    //             return 1;
-    // }
     close(fd);
     return 0;
 }
 
 int login(char username[], char password[], char res[])
 {
-    // printf("in login\n");
     int fd = open("DB/userTable", O_RDONLY);
     lseek(fd, 0, SEEK_SET);
     user temp;
-    // int flag1 = 1;
     while (read(fd, &temp, sizeof(user)))
     {
-        printf("in while\n");
         if (strcmp(temp.userName, username) == 0)
         {
-            printf("check1\n");
             if (strcmp(temp.password, password) == 0)
             {
-                printf("check2\n");
                 strcpy(res, temp.userId);
                 (temp.isAdmin) ? strcat(res, " 1") : strcat(res, " 0");
                 close(fd);
@@ -180,14 +120,12 @@ int login(char username[], char password[], char res[])
             }
         }
     }
-    // printf("WASTED\n");
     strcpy(res, "-1");
     close(fd);
     return 0;
 }
 
 void charDetector(char c, char str[]){
-
     int i = 0;
     for(; i<strlen(str); i++){
         if(str[i] == c){
@@ -227,8 +165,6 @@ int reg(char username[], char password[], char res[])
     memset(id,0,strlen(id));
 
     write(fd, &u, sizeof(user));
-
-
     return 1;
 }
 
@@ -239,30 +175,24 @@ int viewAllProducts(char res[])
 
     int fd = open("DB/productTable", O_RDONLY);
     product temp;
-    // printf("no smash 1\n");
     while (read(fd, &temp, sizeof(product)))
     {
         if (temp.quantity == 0)
             continue;
-        // printf("no smash 2\n");
         strcat(res, temp.prodId);
         strcat(res, "\t");
         strcat(res, temp.name);
         strcat(res, "\t\t");
-        // printf("no smash 3\n");
         char qty[9];
         sprintf(qty, "%d", temp.quantity);
         strcat(res, qty);
         strcat(res, "\t\t");
         char price[8];
         gcvt(temp.price, 8, price);
-        // printf("no smash 4\n");
         strcat(res, price);
         strcat(res, "\n");
     }
-    // printf("no smash 5\n");
     close(fd);
-    // printf("%s\n", res);
     return 1;
 }
 
@@ -367,7 +297,6 @@ int updateProduct(char prodId[], char qty[], char price[], char res[])
         if (strcmp(temp.prodId, prodId) == 0)
         {
             temp.quantity = atoi(qty);
-            // printf("%i\n", temp.quantity);
             temp.price = atof(price);
             lseek(fd, -1 * sizeof(product), SEEK_CUR);
             write(fd, &temp, sizeof(product));
@@ -388,10 +317,8 @@ int prodCheckQty(char prodId[], int qty, char res[]){
     int fd = open("DB/productTable", O_RDWR);
     product temp2;
     while(read(fd, &temp2, sizeof(product))){
-        // printf("hello");
         if(strcmp(temp2.prodId, prodId) == 0){
             int q = temp2.quantity - qty;
-            // printf("%i\n", q);
             if(q < 0){
                 strcpy(res, "Insufficient quantity!");
                 close(fd);
@@ -470,7 +397,6 @@ int viewCart(char userID[], char res[])
     {
         if (strcmp(temp1.userId, userID) == 0 && temp1.quantity > 0)
         {
-            // strcpy(res, "Product added to cart");
             strcat(res, temp1.prodId);
             strcat(res, "\t");
             int fd2 = open("DB/productTable", O_RDWR);
@@ -489,7 +415,6 @@ int viewCart(char userID[], char res[])
             strcat(res, "\n");
         }
     }
-    // printf("%s\n", res);
     close(fd1);
     return 1;
 }
@@ -627,16 +552,12 @@ void processRequest(int *nsd, char res[])
 
     read(*nsd, &userId, 8);
     read(*nsd, &buff, 2);
-    // printf("length of userid: %ld\n", strlen(userId));
 
     charDetector(' ', userId);
     charDetector(' ', buff);
-    // printf("length of userid: %ld\n", strlen(userId));
 
     opCode = buff[0];
 
-    printf("userId : %s\n", userId);
-    printf("opCode : %c\n", opCode);
 
     if (strcmp(userId, "-1") == 0)
     {
@@ -648,30 +569,18 @@ void processRequest(int *nsd, char res[])
         read(*nsd, &password, 19);
         charDetector(' ', userName);
         charDetector(' ', password);
-        printf("len of userName : %ld\n", strlen(userName));
-        printf("len of password : %ld\n", strlen(password));
 
         if (opCode == '1')
-        {
             out = login(userName, password, res);
-        }
-        // register
         else if (opCode == '2')
-        {
             out = reg(userName, password, res);
-        }
     }
     else
     {
-
-    //     printf("isAdmin(userId) : %d\n",isAdmin(userId));
         if (isAdmin(userId))
         {
-            printf("here1\n");
             if (opCode == '1')
-            {
                 viewAllProducts(res);
-            }
             else if (opCode == '2')
             {
                 char prodId[20];
@@ -682,7 +591,6 @@ void processRequest(int *nsd, char res[])
             }
             else if (opCode == '3')
             {
-                printf("\n\n*********************in add product******************\n\n");
                 char name[20], qty[10], price[10];
                 read(*nsd, name, 19);
                 read(*nsd, qty, 9);
@@ -690,13 +598,6 @@ void processRequest(int *nsd, char res[])
                 charDetector(' ', name);
                 charDetector(' ', qty);       
                 charDetector(' ', price);
-                printf("name %s\n", name);
-                printf("qty %s\n", qty);
-                printf("price %s\n", price);
-                printf("name %ld", strlen(name));
-                printf("qty %ld", strlen(qty));
-                printf("price %ld", strlen(price));
-
                 addProduct(name, qty, price, res);
                 memset(name,0,strlen(name));
                 memset(qty,0,strlen(qty));
@@ -731,9 +632,7 @@ void processRequest(int *nsd, char res[])
         else
         {
             if (opCode == '1')
-            {
                 viewAllProducts(res);
-            }
             else if (opCode == '2')
             {
                 char prodId[20];
@@ -778,15 +677,10 @@ void processRequest(int *nsd, char res[])
             }
             else if (opCode == '6')
             {
-                printf("in buy\n");
                 buy(userId, res);
             }
         }
     }
-    printf("process ress :: !! %s\n", res);
-    memset(userId, 0, sizeof(userId));
-    memset(buff, 0, sizeof(buff));
-
 }
 
 int linker(int *nsd)
@@ -796,11 +690,8 @@ int linker(int *nsd)
     {
         char res[300];
         processRequest(nsd, res);
-        printf("main res !! :: %s\n", res);
         strcat(res, "#");
-        printf("res length%ld\n", strlen(res));
         spaceWrite(*nsd, res, 299);
-        // printf("%s\n", res);
         memset(res,0,strlen(res));
     }
 }
