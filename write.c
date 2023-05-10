@@ -13,7 +13,7 @@ int main(){
     u.isAdmin = 1;
     u.noOfOrders = 0;
     strcpy(u.userName, "admin");
-    strcpy(u.password, "password");
+    strcpy(u.password, "p");
     strcpy(u.userId, "00000000");    
 
     int fd = open("DB/userTable", O_WRONLY );

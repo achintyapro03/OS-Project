@@ -14,6 +14,22 @@
 #include "product.h"
 #include "cart.h"
 
+
+void spaceWrite(int sd, char str[], int len2){
+    int len1 = strlen(str);
+    char new[len2 - len1];
+    for(int i = 0; i < len2 - len1; i++){
+        new[i] = ' ';
+    } 
+    char temp[len2];
+    strcpy(temp, str);
+    strcat(temp, new);
+    // printf("%s\n", temp);
+    write(sd, temp, len2);
+    memset(new,0,strlen(new));
+    memset(temp,0,strlen(temp));
+}
+
 void spilt(char str[], char params[5][20])
 {
     char temp[100];
@@ -150,11 +166,13 @@ int login(char username[], char password[], char res[])
     // int flag1 = 1;
     while (read(fd, &temp, sizeof(user)))
     {
-        // printf("in while\n");
+        printf("in while\n");
         if (strcmp(temp.userName, username) == 0)
         {
+            printf("check1\n");
             if (strcmp(temp.password, password) == 0)
             {
+                printf("check2\n");
                 strcpy(res, temp.userId);
                 (temp.isAdmin) ? strcat(res, " 1") : strcat(res, " 0");
                 close(fd);
@@ -166,6 +184,19 @@ int login(char username[], char password[], char res[])
     strcpy(res, "-1");
     close(fd);
     return 0;
+}
+
+void charDetector(char c, char str[]){
+
+    int i = 0;
+    for(; i<strlen(str); i++){
+        if(str[i] == c){
+            str[i] = '\0';
+            return;
+        }
+    }
+    str[i - 1] = '\0';
+
 }
 
 int reg(char username[], char password[], char res[])
@@ -575,6 +606,7 @@ int buy(char userId[], char res[])
 
 int isAdmin(char userId[])
 {
+
     int fd = open("DB/userTable", O_RDONLY);
     user temp;
     while (read(fd, &temp, sizeof(user)))
@@ -588,86 +620,173 @@ int isAdmin(char userId[])
     }
 }
 
-void processRequest(char req[], char res[])
+void processRequest(int *nsd, char res[])
 {
-    char params[5][20];
-    // for(int i = 0; i < 5; i++){
-    //     printf("%s xxxxxxx\n", params[i]);
-    // }
-    spilt(req, params);
-    // for(int i = 0; i < 5; i++){
-    //     printf("%s yyyyyyy\n", params[i]);
-    // }
-    if (strcmp(params[0], "-1") == 0)
+    char userId[9], buff[3];
+    char opCode;
+
+    read(*nsd, &userId, 8);
+    read(*nsd, &buff, 2);
+    // printf("length of userid: %ld\n", strlen(userId));
+
+    charDetector(' ', userId);
+    charDetector(' ', buff);
+    // printf("length of userid: %ld\n", strlen(userId));
+
+    opCode = buff[0];
+
+    printf("userId : %s\n", userId);
+    printf("opCode : %c\n", opCode);
+
+    if (strcmp(userId, "-1") == 0)
     {
         // login
         int out;
-        if (params[1][0] == '1')
+        char userName[20], password[20];
+
+        read(*nsd, &userName, 19);
+        read(*nsd, &password, 19);
+        charDetector(' ', userName);
+        charDetector(' ', password);
+        printf("len of userName : %ld\n", strlen(userName));
+        printf("len of password : %ld\n", strlen(password));
+
+        if (opCode == '1')
         {
-            out = login(params[2], params[3], res);
+            out = login(userName, password, res);
         }
         // register
-        else if (params[1][0] == '2')
+        else if (opCode == '2')
         {
-            out = reg(params[2], params[3], res);
+            out = reg(userName, password, res);
         }
     }
     else
     {
-        if (isAdmin(params[0]))
+
+    //     printf("isAdmin(userId) : %d\n",isAdmin(userId));
+        if (isAdmin(userId))
         {
-            if (params[1][0] == '1')
+            printf("here1\n");
+            if (opCode == '1')
             {
                 viewAllProducts(res);
             }
-            else if (params[1][0] == '2')
+            else if (opCode == '2')
             {
-                viewOneProduct(params[2], res);
+                char prodId[20];
+                read(*nsd, prodId, 19);
+                charDetector(' ', prodId);
+                viewOneProduct(prodId, res);
+                memset(prodId,0,strlen(prodId));
             }
-            else if (params[1][0] == '3')
+            else if (opCode == '3')
             {
-                addProduct(params[2], params[3], params[4], res);
+                printf("\n\n*********************in add product******************\n\n");
+                char name[20], qty[10], price[10];
+                read(*nsd, name, 19);
+                read(*nsd, qty, 9);
+                read(*nsd, price, 9);
+                charDetector(' ', name);
+                charDetector(' ', qty);       
+                charDetector(' ', price);
+                printf("name %s\n", name);
+                printf("qty %s\n", qty);
+                printf("price %s\n", price);
+                printf("name %ld", strlen(name));
+                printf("qty %ld", strlen(qty));
+                printf("price %ld", strlen(price));
+
+                addProduct(name, qty, price, res);
+                memset(name,0,strlen(name));
+                memset(qty,0,strlen(qty));
+                memset(price,0,strlen(price));
+
             }
-            else if (params[1][0] == '4')
+            else if (opCode == '4')
             {
-                deleteProduct(params[2], res);
+                char prodId[20];
+                read(*nsd, prodId, 19);
+                charDetector(' ', prodId);
+                deleteProduct(prodId, res);
+                memset(prodId,0,strlen(prodId));
+
             }
-            else if (params[1][0] == '5')
+            else if (opCode == '5')
             {
-                updateProduct(params[2], params[3], params[4], res);
+                char prodId[20], qty[10], price[10];   
+                read(*nsd, prodId, 19);
+                read(*nsd, qty, 9);
+                read(*nsd, price, 9);
+                charDetector(' ', prodId);
+                charDetector(' ', qty);       
+                charDetector(' ', price);
+                updateProduct(prodId, qty, price, res);
+                memset(prodId,0,strlen(prodId));
+                memset(qty,0,strlen(qty));
+                memset(price,0,strlen(price));
             }
         }
+    
         else
         {
-            if (params[1][0] == '1')
+            if (opCode == '1')
             {
                 viewAllProducts(res);
             }
-            else if (params[1][0] == '2')
+            else if (opCode == '2')
             {
-                viewOneProduct(params[2], res);
+                char prodId[20];
+                read(*nsd, prodId, 19);
+                charDetector(' ', prodId);
+                viewOneProduct(prodId, res);
+                memset(prodId,0,strlen(prodId));
             }
-            else if (params[1][0] == '3')
+            else if (opCode == '3')
             {
-                addToCart(params[0], params[2], params[3], res);
+                char prodId[20], qty[10];   
+                read(*nsd, prodId, 19);
+                read(*nsd, qty, 9);
+                charDetector(' ', prodId);
+                charDetector(' ', qty);       
+                addToCart(userId, prodId, qty, res);
+                memset(prodId,0,strlen(prodId));
+                memset(qty,0,strlen(qty));
             }
-            else if (params[1][0] == '4')
+            else if (opCode == '4')
             {
-                viewCart(params[0], res);
+                viewCart(userId, res);
             }
-            else if (params[1][0] == '5')
+            else if (opCode == '5')
             {
-                editCart(params[0], params[2][0], params[3], params[4], res);
+                char buff2[3], opCode2, prodId[20], qty[10];
+                read(*nsd, &buff2, 2);
+                read(*nsd, prodId, 19);
+                charDetector(' ', buff2);
+                charDetector(' ', prodId);
+
+                opCode2 = buff2[0];
+
+                if(opCode2 == 'b'){
+                    read(*nsd, &qty, 9);
+                    charDetector(' ', qty);
+                }
+                editCart(userId, opCode2, prodId, qty, res);
+                memset(prodId,0,strlen(prodId));
+                memset(qty,0,strlen(qty));
+                memset(buff2,0,strlen(buff2));
             }
-            else if (params[1][0] == '6')
+            else if (opCode == '6')
             {
-                buy(params[0], res);
+                printf("in buy\n");
+                buy(userId, res);
             }
         }
     }
-    for(int i=0; i<5; i++){
-        memset(params[i],0,strlen(params[i]));
-    }
+    printf("process ress :: !! %s\n", res);
+    memset(userId, 0, sizeof(userId));
+    memset(buff, 0, sizeof(buff));
+
 }
 
 int linker(int *nsd)
@@ -675,12 +794,13 @@ int linker(int *nsd)
 
     while (1)
     {
-        char req[100];
         char res[300];
-        read(*nsd, req, sizeof(req));
-        processRequest(req, res);
-        write(*nsd, res, sizeof(res));
-        memset(req,0,strlen(req));
+        processRequest(nsd, res);
+        printf("main res !! :: %s\n", res);
+        strcat(res, "#");
+        printf("res length%ld\n", strlen(res));
+        spaceWrite(*nsd, res, 299);
+        // printf("%s\n", res);
         memset(res,0,strlen(res));
     }
 }

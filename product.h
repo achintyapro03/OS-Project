@@ -1,6 +1,6 @@
 typedef struct product{
-    char name[50];
-    char prodId[10];
+    char name[20];
+    char prodId[9];
     int quantity;
     float price;
 }product;
