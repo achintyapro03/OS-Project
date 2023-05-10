@@ -35,7 +35,6 @@ void spaceWrite(int sd, char str[], int len2){
     memset(temp,0,strlen(temp));
 }
 
-
 void charDetector(char c, char str[]){
     int i = 0;
     for(; i<strlen(str); i++){
@@ -66,26 +65,6 @@ void split(char str[], char params[][9])
         }
     }
 }
-
-// int contactServer(int sd, char req[], char res[]){
-//     write(sd,req,100);
-//     read(sd,res,300);
-// }
-
-
-// char* itoa(int val, int base){
-	
-// 	static char buf[32] = {0};
-	
-// 	int i = 30;
-	
-// 	for(; val && i ; --i, val /= base)
-	
-// 		buf[i] = "0123456789abcdef"[val % base];
-	
-// 	return &buf[i+1];
-	
-// }
 
 char * logReg(int sd, int cond){
     char userName[20];
@@ -127,18 +106,6 @@ int landing(int time){
         landing(1);
 }
 
-// int dispProd(){
-
-// }
-
-// int buyProduct(){
-
-// }
-
-// int viewCart(){
-
-// }
-
 int editCart(int sd, char userId[]){
     printf("a. Remove item\n");
     printf("b. Update Quantity\n");
@@ -169,14 +136,7 @@ int editCart(int sd, char userId[]){
     }
 }
 
-
-// Request Format
-// UserId RequestType 
-
-
 int home(int sd, int time, char userId[], int isAdmin){
-    // system("clear");
-    
     if(isAdmin){
         if(time > 0)
             printf("Invalid option\n" );    
@@ -222,7 +182,6 @@ int home(int sd, int time, char userId[], int isAdmin){
             spaceWrite(sd, price, 9);
             return 1;
         }
-    //         // viewCart();
         else if(choice == '4'){
             char id[20];
             scanf("%c", &temp);
@@ -354,7 +313,6 @@ int main(){
 
     while(1){
         char res[300];
-        // system("clear");
         if(!loggedIn){
             int out = landing(0);
             if(out == -999)
@@ -362,22 +320,15 @@ int main(){
             ((!out) ? logReg(sd, 1) : logReg(sd, 2));
             read(sd, res, 299);
             charDetector('#', res);
-            // contactServer(sd, req, res);
-            // printf("%s\n", req);
             printf("%s\n", res);
             if(res[0] != '-'){
                 printf("You have successfully logged in\n");
                 loggedIn = 1;
                 char params[2][9];
                 split(res, params);
-                printf("params: %s\n", params[0]);
-                printf("params: %s\n", params[1]);
-                printf("len = %ld\n", strlen(res));
                 params[0][8] = '\0';
                 strcpy(userId, params[0]);
                 isAdmin = (int) params[1][0] - 48;
-                printf("%i\n", isAdmin);
-                // printf("user : %s\n", userId);
                 memset(params[0],0,strlen(params[0]));
                 memset(params[1],0,strlen(params[1]));
             }
@@ -390,10 +341,8 @@ int main(){
             keyWait();
         }
         else{
-            // printf("%s\n", userId);    
             int out = home(sd, 0, userId, isAdmin);
-            // printf("%s\n", userId);    
-            // printf("%s\n", req);
+
             if(out == -1) continue;
             else if(out == -999) {
                 loggedIn = 0;
@@ -403,8 +352,6 @@ int main(){
             else {
                 read(sd, res, 299);
                 charDetector('#', res);
-                // contactServer(sd, req, res);
-                // printf("%s\n", req);
                 printf("%s\n", res);
                 keyWait();
             }
