@@ -10,7 +10,9 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <ctype.h>
+#include <math.h>
 #include "data.h"
+
 
 void spaceWrite(int sd, char str[], int len2){
     int len1 = strlen(str);
@@ -34,14 +36,15 @@ void idGenerator(int cond, char id[]){
         while(read(fd, &temp, sizeof(product))){
             count++;
         }
+
+        printf("count : %d\n",count);
+        count--;
         int x = count;
         int len = 0;
         while(x > 0){
             x = x / 10;
             len++;
         }
-
-        if(count == 0) len = 1;
 
         for(int i = 0; i < 8 - len; i++)
             id[i] = '0';
@@ -64,7 +67,10 @@ void idGenerator(int cond, char id[]){
             len++;
         }
 
-        if(count == 0) len = 1;
+        if(count == 0){
+            strcpy(id, "00000000\0");
+            return;
+        }
 
         for(int i = 0; i < 8 - len; i++)
             id[i] = '0';
@@ -155,7 +161,6 @@ int reg(char username[], char password[], char res[])
     strcat(res, " 0");
     user u;
     u.isAdmin = 0;
-    u.noOfOrders = 0;
     strcpy(u.password, password);
     strcpy(u.userName, username);
     strcpy(u.userId, id);
@@ -224,15 +229,6 @@ int viewOneProduct(int fd, char prodId[], char res[])
     
 }
 
-void *lockRecordThread(thread_data *arg) {
-   
-    read(*arg->nsd, arg->result1, 9);
-    read(*arg->nsd, arg->result2, 9);
-    charDetector(' ', arg->result1);       
-    charDetector(' ', arg->result2);
-    pthread_exit(NULL);
-}
-
 void lockRecord(int fd, int cond, int recordNumber) {
     struct flock fl;
     fl.l_type = F_WRLCK; 
@@ -260,7 +256,6 @@ void unlockRecord(int fd,int cond, int recordNumber) {
         exit(1);
     }
 }
-
 
 int addProduct(int fd, char prodName[], char qty[], char price[], char res[])
 {
@@ -333,25 +328,28 @@ int updateProduct(int fd, char prodId[], char qty[], char price[], char res[])
 int prodCheckQty(char prodId[], int qty, char res[]){
 
     int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+
+    lockRecord(fd, 1, atoi(prodId));
     product temp2;
-    while(read(fd, &temp2, sizeof(product))){
-        if(strcmp(temp2.prodId, prodId) == 0){
-            int q = temp2.quantity - qty;
-            if(q < 0){
-                strcpy(res, "Insufficient quantity!");
-                close(fd);
-                return 0;
-            }
-            else{
-                temp2.quantity = q;
-                lseek(fd, -1 * sizeof(product), SEEK_CUR);
-                write(fd, &temp2, sizeof(product));
-                close(fd);
-                return 1;
-            }
-        }
+
+    lseek(fd, atoi(prodId) * sizeof(product), SEEK_SET);
+    read(fd, &temp2, sizeof(product));
+    int q = temp2.quantity - qty;
+    if(q < 0){
+        strcpy(res, "Insufficient quantity!");
+        close(fd);
+        return 0;
     }
-    
+    else{
+        temp2.quantity = q;
+        lseek(fd, -1 * sizeof(product), SEEK_CUR);
+        write(fd, &temp2, sizeof(product));
+        close(fd);
+        return 1;
+    }
+
+    unlockRecord(fd, 1, atoi(prodId));
+    close(fd);    
 }
 
 int addToCart(char userId[], char prodId[], char qty[], char res[])
@@ -418,15 +416,19 @@ int viewCart(char userID[], char res[])
             strcat(res, temp1.prodId);
             strcat(res, "\t");
             int fd2 = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+
+            lockRecord(fd2, 1, atoi(temp1.prodId));
+
             product temp2;
-            while(read(fd2, &temp2, sizeof(product))){
-                if(strcmp(temp1.prodId, temp2.prodId) == 0){
-                    strcat(res, temp2.name);
-                    strcat(res, "\t\t");
-                    close(fd2);
-                    break;
-                }
-            }
+            lseek(fd2, atoi(temp1.prodId) * sizeof(product), SEEK_SET);
+            read(fd2, &temp2, sizeof(product));
+            strcat(res, temp2.name);
+            strcat(res, "\t\t");
+
+            unlockRecord(fd2, 1, atoi(temp2.prodId));
+
+            close(fd2);
+
             char qty[8];
             sprintf(qty, "%d", temp1.quantity);
             strcat(res, qty);
@@ -508,39 +510,44 @@ int buy(char userId[], char res[])
     while(read(fd1, &temp1, sizeof(cart))){
         if(strcmp(temp1.userId, userId) == 0 && temp1.quantity > 0){
             count++;
-            product temp2;
             int fd2 = open("DB/productTable", O_RDWR| O_CREAT, 0744);
 
-            float pricePerType = 0.0;
-            while(read(fd2, &temp2, sizeof(product))){
-                if(strcmp(temp1.prodId, temp2.prodId) == 0){
-                    pricePerType = temp2.price * temp1.quantity;
-                    totalPrice += pricePerType;
-                    strcat(res, temp2.name);
-                    strcat(res, "\t\t");
-                    char qty[9];
-                    sprintf(qty, "%d", temp1.quantity);
-                    strcat(res, qty);
-                    strcat(res, "\t");
-                    char price1[8];
-                    gcvt(temp2.price, 8, price1);
-                    char price2[12];
-                    gcvt(pricePerType, 12, price2);
-                    strcat(res, price1);
-                    strcat(res, "\t\t");
-                    strcat(res, price2);
-                    strcat(res, "\n");
-                }
-            }
+            lockRecord(fd2, 1, atoi(temp1.prodId));
+            product temp2;
+
+            lseek(fd2, atoi(temp1.prodId) * sizeof(product), SEEK_SET);
+            read(fd2, &temp2, sizeof(product));
+
+            unlockRecord(fd2, 1, atoi(temp1.prodId));
+
+
+            float pricePerType = temp2.price * temp1.quantity;
+            totalPrice += pricePerType;
+            strcat(res, temp2.name);
+            strcat(res, "\t\t");
+            char qty[9];
+            sprintf(qty, "%d", temp1.quantity);
+            strcat(res, qty);
+            strcat(res, "\t");
+            char price1[8];
+            gcvt(temp2.price, 8, price1);
+            char price2[12];
+            gcvt(pricePerType, 12, price2);
+            strcat(res, price1);
+            strcat(res, "\t\t");
+            strcat(res, price2);
+            strcat(res, "\n");
+                
             char r[300];
-            int x = editCart(userId, 'c', temp1.prodId, 0, r);
+            // int x = editCart(userId, 'c', temp1.prodId, 0, r);
             close(fd2);
         }
     }
+    totalPrice = round(totalPrice * 100) / 100;
     if(count == 0) strcpy(res, "You have no items in cart! Please add some items first\n");
     else{
-        char price[12];
-        gcvt(totalPrice, 12, price);
+        char price[10];
+        gcvt(totalPrice, 10, price);
         strcat(res, "\n\t\t\t\tTotal : ");
         strcat(res, price);
         strcat(res, "\n");
@@ -769,10 +776,11 @@ int linker(int *nsd)
 
     while (1)
     {
-        char res[300];
+        char res[350];
         processRequest(nsd, res);
         strcat(res, "#");
-        spaceWrite(*nsd, res, 299);
+        printf("%s", res);
+        spaceWrite(*nsd, res, 349);
         memset(res,0,strlen(res));
     }
 }

@@ -306,13 +306,13 @@ int main(){
 
 
     while(1){
-        char res[300];
+        char res[350];
         if(!loggedIn){
             int out = landing(0);
             if(out == -999)
                 break;
             ((!out) ? logReg(sd, 1) : logReg(sd, 2));
-            read(sd, res, 299);
+            read(sd, res, 349);
             charDetector('#', res);
             printf("%s\n", res);
             if(res[0] != '-'){
@@ -344,7 +344,7 @@ int main(){
                 memset(userId,0,strlen(userId));
             }
             else {
-                read(sd, res, 299);
+                read(sd, res, 349);
                 charDetector('#', res);
                 printf("%s\n", res);
                 keyWait();

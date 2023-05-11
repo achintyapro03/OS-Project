@@ -1,17 +1,15 @@
-#include "user.h"
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-
+#include "data.h"
 
 int main(){
     user u;
 
     u.isAdmin = 1;
-    u.noOfOrders = 0;
     strcpy(u.userName, "a");
     strcpy(u.password, "p");
     strcpy(u.userId, "00000000");    
