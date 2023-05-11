@@ -12,7 +12,7 @@ int main(){
 
     u.isAdmin = 1;
     u.noOfOrders = 0;
-    strcpy(u.userName, "admin");
+    strcpy(u.userName, "a");
     strcpy(u.password, "p");
     strcpy(u.userId, "00000000");    
 

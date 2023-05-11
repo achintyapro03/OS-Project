@@ -10,10 +10,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <ctype.h>
-#include "user.h"
-#include "product.h"
-#include "cart.h"
-
+#include "data.h"
 
 void spaceWrite(int sd, char str[], int len2){
     int len1 = strlen(str);
@@ -31,29 +28,7 @@ void spaceWrite(int sd, char str[], int len2){
 
 void idGenerator(int cond, char id[]){
     if(!cond){
-        int fd = open("DB/userTable", O_RDONLY);
-        int count = 0;
-        user temp;
-        while(read(fd, &temp, sizeof(user))){
-            count++;
-        }
-        int x = count;
-        int len = 0;
-        while(x > 0){
-            x = x / 10;
-            len++;
-        }
-
-        if(count == 0) len = 1;
-
-        for(int i = 0; i < 8 - len; i++)
-            id[i] = '0';
-        char r[len];
-        sprintf(r, "%d", count);
-        strcat(id, r);
-    }
-    else{
-        int fd = open("DB/productTable", O_RDONLY);
+        int fd = open("DB/userTable", O_RDWR| O_CREAT, 0744);
         int count = 0;
         product temp;
         while(read(fd, &temp, sizeof(product))){
@@ -70,7 +45,30 @@ void idGenerator(int cond, char id[]){
 
         for(int i = 0; i < 8 - len; i++)
             id[i] = '0';
-        id[9 - len] = '\0';
+        id[8 - len] = '\0';
+        char r[len];
+        sprintf(r, "%d", count);
+        strcat(id, r);
+    }
+    else{
+        int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+        int count = 0;
+        product temp;
+        while(read(fd, &temp, sizeof(product))){
+            count++;
+        }
+        int x = count;
+        int len = 0;
+        while(x > 0){
+            x = x / 10;
+            len++;
+        }
+
+        if(count == 0) len = 1;
+
+        for(int i = 0; i < 8 - len; i++)
+            id[i] = '0';
+        id[8 - len] = '\0';
         char r[len];
         sprintf(r, "%d", count);
         strcat(id, r);
@@ -80,7 +78,7 @@ void idGenerator(int cond, char id[]){
 }
 
 int checkInDB(char key[], char DBname[]){
-    int fd = open(DBname, O_RDONLY);
+    int fd = open(DBname, O_RDWR| O_CREAT, 0744);
 
     if(strcmp(DBname, "DB/userTable")==0){
         user temp;
@@ -104,7 +102,7 @@ int checkInDB(char key[], char DBname[]){
 
 int login(char username[], char password[], char res[])
 {
-    int fd = open("DB/userTable", O_RDONLY);
+    int fd = open("DB/userTable", O_RDWR| O_CREAT, 0744);
     lseek(fd, 0, SEEK_SET);
     user temp;
     while (read(fd, &temp, sizeof(user)))
@@ -127,8 +125,8 @@ int login(char username[], char password[], char res[])
 
 void charDetector(char c, char str[]){
     int i = 0;
-    for(; i<strlen(str); i++){
-        if(str[i] == c){
+    for(; i<strlen(str) + 1; i++){
+        if(str[i] == c || (int)str[i] == 127){
             str[i] = '\0';
             return;
         }
@@ -139,7 +137,7 @@ void charDetector(char c, char str[]){
 
 int reg(char username[], char password[], char res[])
 {
-    int fd = open("DB/userTable", O_RDWR);
+    int fd = open("DB/userTable", O_RDWR| O_CREAT, 0744);
     lseek(fd, 0, SEEK_SET);
     user temp;
     // int flag1 = 1;
@@ -168,12 +166,12 @@ int reg(char username[], char password[], char res[])
     return 1;
 }
 
-int viewAllProducts(char res[])
+int viewAllProducts(int fd, char res[])
 {
     strcpy(res, "Achi MART All Products!!\n\n");
     strcat(res, "\nProductId\tName\t\tQuantity\tPrice\n\n");
 
-    int fd = open("DB/productTable", O_RDONLY);
+    
     product temp;
     while (read(fd, &temp, sizeof(product)))
     {
@@ -192,43 +190,80 @@ int viewAllProducts(char res[])
         strcat(res, price);
         strcat(res, "\n");
     }
-    close(fd);
     return 1;
 }
 
-int viewOneProduct(char prodId[], char res[])
+int viewOneProduct(int fd, char prodId[], char res[])
 {
     strcpy(res, "Achi MART!!\n\n");
     strcat(res, "\nProductId\tName\tQuantity\tPrice\n\n");
 
-    int fd = open("DB/productTable", O_RDONLY);
-    product temp;
-    while (read(fd, &temp, sizeof(product)))
-    {
-        if (strcmp(temp.prodId, prodId) == 0)
-        {
-            strcat(res, temp.prodId);
-            strcat(res, "\t");
-            strcat(res, temp.name);
-            strcat(res, "\t");
-            char qty[8];
-            sprintf(qty, "%d", temp.quantity);
-            strcat(res, qty);
-            strcat(res, "\t\t");
-            char price[8];
-            gcvt(temp.price, 8, price);
-            strcat(res, price);
-            strcat(res, "\n");
-            return 1;
-        }
+    if(!checkInDB(prodId, "DB/productTable")){
+        strcpy(res, "Opps!! Product not found!\n");
+        return 0;
     }
-    close(fd);
-    strcpy(res, "Opps!! Product not found!\n");
+
+    product temp;
+    printf("offset: %d\n", atoi(prodId));
+    lseek(fd, atoi(prodId) * sizeof(product), SEEK_SET);
+    read(fd, &temp, sizeof(product));
+    
+    strcat(res, temp.prodId);
+    strcat(res, "\t");
+    strcat(res, temp.name);
+    strcat(res, "\t");
+    char qty[8];
+    sprintf(qty, "%d", temp.quantity);
+    strcat(res, qty);
+    strcat(res, "\t\t");
+    char price[8];
+    gcvt(temp.price, 8, price);
+    strcat(res, price);
+    strcat(res, "\n");
+    return 1;
+    
 }
 
-int addProduct(char prodName[], char qty[], char price[], char res[])
+void *lockRecordThread(thread_data *arg) {
+   
+    read(*arg->nsd, arg->result1, 9);
+    read(*arg->nsd, arg->result2, 9);
+    charDetector(' ', arg->result1);       
+    charDetector(' ', arg->result2);
+    pthread_exit(NULL);
+}
+
+void lockRecord(int fd, int cond, int recordNumber) {
+    struct flock fl;
+    fl.l_type = F_WRLCK; 
+    fl.l_whence = SEEK_SET;
+    fl.l_start = cond * recordNumber * sizeof(product);
+    fl.l_len = cond * sizeof(product);
+    fl.l_pid = getpid();
+
+    if (fcntl(fd, F_SETLKW, &fl) == -1) {
+        perror("fcntl");
+        exit(1);
+    }
+}
+
+void unlockRecord(int fd,int cond, int recordNumber) {
+    struct flock fl;
+    fl.l_type = F_UNLCK;
+    fl.l_whence = SEEK_SET;
+    fl.l_start = cond * recordNumber * sizeof(product);
+    fl.l_len = cond * sizeof(product);
+    fl.l_pid = getpid();
+
+    if (fcntl(fd, F_SETLK, &fl) == -1) {
+        perror("fcntl");
+        exit(1);
+    }
+}
+
+
+int addProduct(int fd, char prodName[], char qty[], char price[], char res[])
 {
-    int fd = open("DB/productTable", O_RDWR);
     lseek(fd, 0, SEEK_SET);
     product temp;
     // int flag1 = 1;
@@ -241,7 +276,6 @@ int addProduct(char prodName[], char qty[], char price[], char res[])
             lseek(fd, -1 * sizeof(product), SEEK_CUR);
             write(fd, &temp, sizeof(product));
             strcpy(res, "Product Added");
-            close(fd);
             return 1;
         }
     }
@@ -256,65 +290,49 @@ int addProduct(char prodName[], char qty[], char price[], char res[])
     p1.quantity = atoi(qty);
     strcpy(res, "Product Added");
     write(fd, &p1, sizeof(product));
-    close(fd);
     return 1;
 }
 
-int deleteProduct(char prodId[], char res[])
+int deleteProduct(int fd, char prodId[], char res[])
 {
-    int fd = open("DB/productTable", O_RDWR);
-    lseek(fd, 0, SEEK_SET);
+    if(!checkInDB(prodId, "DB/productTable")){
+        strcpy(res, "Opps!! Product not found!\n");
+        return 0;
+    }
     product temp;
 
-    while (read(fd, &temp, sizeof(product)))
-    {
-        if (strcmp(temp.prodId, prodId) == 0)
-        {
-            temp.quantity = 0;
-            temp.price = 0;
-            lseek(fd, -1 * sizeof(product), SEEK_CUR);
-            write(fd, &temp, sizeof(product));
-            strcpy(res, "Product Deleted");
-            close(fd);
-            return 1;
-        }
-    }
-
-    strcpy(res, "Product Not found");
-    close(fd);
-
-    return 0;
+    lseek(fd, atoi(prodId) * sizeof(product), SEEK_SET);
+    read(fd, &temp, sizeof(product));
+    temp.quantity = 0;
+    temp.price = 0;
+    lseek(fd, -1 * sizeof(product), SEEK_CUR);
+    write(fd, &temp, sizeof(product));
+    strcpy(res, "Product Deleted!!\n");
+    return 1;
 }
 
-int updateProduct(char prodId[], char qty[], char price[], char res[])
+int updateProduct(int fd, char prodId[], char qty[], char price[], char res[])
 {
-    int fd = open("DB/productTable", O_RDWR);
-    lseek(fd, 0, SEEK_SET);
-    product temp;
-
-    while (read(fd, &temp, sizeof(product)))
-    {
-        if (strcmp(temp.prodId, prodId) == 0)
-        {
-            temp.quantity = atoi(qty);
-            temp.price = atof(price);
-            lseek(fd, -1 * sizeof(product), SEEK_CUR);
-            write(fd, &temp, sizeof(product));
-            strcpy(res, "Product Updated");
-            close(fd);
-            return 1;
-        }
+    if(!checkInDB(prodId, "DB/productTable")){
+        strcpy(res, "Opps!! Product not found!\n");
+        return 0;
     }
-
-    strcpy(res, "Product Not found");
-    close(fd);
-
-    return 0;
+    printf("in updateProduct\n");
+    product temp;
+    lseek(fd, atoi(prodId) * sizeof(product), SEEK_SET);
+    read(fd, &temp, sizeof(product));
+    temp.quantity = atoi(qty);
+    temp.price = atof(price);
+    lseek(fd, -1 * sizeof(product), SEEK_CUR);
+    write(fd, &temp, sizeof(product));
+    strcpy(res, "Product Updated");
+    return 1;
+    
 }
 
 int prodCheckQty(char prodId[], int qty, char res[]){
 
-    int fd = open("DB/productTable", O_RDWR);
+    int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
     product temp2;
     while(read(fd, &temp2, sizeof(product))){
         if(strcmp(temp2.prodId, prodId) == 0){
@@ -343,7 +361,7 @@ int addToCart(char userId[], char prodId[], char qty[], char res[])
         return 0;
     }
 
-    int fd1 = open("DB/cartTable", O_RDWR);
+    int fd1 = open("DB/cartTable", O_RDWR| O_CREAT, 0744);
     lseek(fd1, 0, SEEK_SET);
 
     cart temp1;
@@ -387,7 +405,7 @@ int addToCart(char userId[], char prodId[], char qty[], char res[])
 int viewCart(char userID[], char res[])
 {
 
-    int fd1 = open("DB/cartTable", O_RDWR);
+    int fd1 = open("DB/cartTable", O_RDWR| O_CREAT, 0744);
     lseek(fd1, 0, SEEK_SET);
     strcpy(res, "\nProducs in cart\n");
     strcat(res, "Prod Id\t\tProd Name\tQuantity\n");
@@ -399,7 +417,7 @@ int viewCart(char userID[], char res[])
         {
             strcat(res, temp1.prodId);
             strcat(res, "\t");
-            int fd2 = open("DB/productTable", O_RDWR);
+            int fd2 = open("DB/productTable", O_RDWR| O_CREAT, 0744);
             product temp2;
             while(read(fd2, &temp2, sizeof(product))){
                 if(strcmp(temp1.prodId, temp2.prodId) == 0){
@@ -426,7 +444,7 @@ int editCart(char userId[], char condition, char prodId[], char qty[], char res[
         return 0;
     }
 
-    int fd1 = open("DB/cartTable", O_RDWR);
+    int fd1 = open("DB/cartTable", O_RDWR| O_CREAT, 0744);
     lseek(fd1, 0, SEEK_SET);
 
     cart temp1;
@@ -479,7 +497,7 @@ int editCart(char userId[], char condition, char prodId[], char qty[], char res[
 
 int buy(char userId[], char res[])
 {
-    int fd1 = open("DB/cartTable", O_RDWR);
+    int fd1 = open("DB/cartTable", O_RDWR| O_CREAT, 0744);
     int count = 0;
     cart temp1;
 
@@ -491,7 +509,7 @@ int buy(char userId[], char res[])
         if(strcmp(temp1.userId, userId) == 0 && temp1.quantity > 0){
             count++;
             product temp2;
-            int fd2 = open("DB/productTable", O_RDONLY);
+            int fd2 = open("DB/productTable", O_RDWR| O_CREAT, 0744);
 
             float pricePerType = 0.0;
             while(read(fd2, &temp2, sizeof(product))){
@@ -532,16 +550,25 @@ int buy(char userId[], char res[])
 int isAdmin(char userId[])
 {
 
-    int fd = open("DB/userTable", O_RDONLY);
+    int fd = open("DB/userTable", O_RDWR| O_CREAT, 0744);
     user temp;
     while (read(fd, &temp, sizeof(user)))
     {
+        printf("my user id len = %ld\n", strlen(userId));
+        printf("user id len = %ld\n", strlen(temp.userId));
+
         if (strcmp(temp.userId, userId) == 0)
         {
             int x = temp.isAdmin;
             close(fd);
             return x;
         }
+    }
+}
+
+void testFunction(){
+    for(int i = 0; i < 10; i++){
+        printf("%i\n", (i + 1) * (i + 1));
     }
 }
 
@@ -552,13 +579,15 @@ void processRequest(int *nsd, char res[])
 
     read(*nsd, &userId, 8);
     read(*nsd, &buff, 2);
-
+    printf("userId: %s\n", userId);
     charDetector(' ', userId);
     charDetector(' ', buff);
+    printf("userId: %s\n", userId);
+    printf("%s\n", buff);
 
     opCode = buff[0];
 
-
+    printf("khalibhali\n");
     if (strcmp(userId, "-1") == 0)
     {
         // login
@@ -579,18 +608,35 @@ void processRequest(int *nsd, char res[])
     {
         if (isAdmin(userId))
         {
-            if (opCode == '1')
-                viewAllProducts(res);
+            printf("yes Admin!!\n");
+            if (opCode == '1'){
+                int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+                lockRecord(fd, 0, 0);
+                viewAllProducts(fd, res);
+                unlockRecord(fd, 0, 0);
+                close(fd);
+            }
             else if (opCode == '2')
             {
                 char prodId[20];
                 read(*nsd, prodId, 19);
                 charDetector(' ', prodId);
-                viewOneProduct(prodId, res);
+
+                int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+
+                lockRecord(fd, 1, atoi(prodId));
+                viewOneProduct(fd, prodId, res);
+                unlockRecord(fd, 1, atoi(prodId));
+
                 memset(prodId,0,strlen(prodId));
+                close(fd);
             }
             else if (opCode == '3')
             {
+                int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+
+                lockRecord(fd, 0, 0);
+
                 char name[20], qty[10], price[10];
                 read(*nsd, name, 19);
                 read(*nsd, qty, 9);
@@ -598,48 +644,83 @@ void processRequest(int *nsd, char res[])
                 charDetector(' ', name);
                 charDetector(' ', qty);       
                 charDetector(' ', price);
-                addProduct(name, qty, price, res);
+                addProduct(fd, name, qty, price, res);
+
+                unlockRecord(fd, 0, 0);
+
                 memset(name,0,strlen(name));
                 memset(qty,0,strlen(qty));
                 memset(price,0,strlen(price));
+                close(fd);
 
             }
             else if (opCode == '4')
             {
+                int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+
+                lockRecord(fd, 0, 0);
+
                 char prodId[20];
                 read(*nsd, prodId, 19);
                 charDetector(' ', prodId);
-                deleteProduct(prodId, res);
+                deleteProduct(fd, prodId, res);
+
+                unlockRecord(fd, 0, 0);
+
                 memset(prodId,0,strlen(prodId));
+                close(fd);
 
             }
             else if (opCode == '5')
             {
-                char prodId[20], qty[10], price[10];   
+                int fd = open("DB/productTable", O_RDWR | O_CREAT, 0744);
+
+                char prodId[20], qty[10], price[10];
                 read(*nsd, prodId, 19);
+                charDetector(' ', prodId);
+                lockRecord(fd, 1, atoi(prodId));
                 read(*nsd, qty, 9);
                 read(*nsd, price, 9);
-                charDetector(' ', prodId);
-                charDetector(' ', qty);       
+
+                charDetector(' ', qty);
                 charDetector(' ', price);
-                updateProduct(prodId, qty, price, res);
+                updateProduct(fd, prodId, qty, price, res);
+                unlockRecord(fd, 1, atoi(prodId));
+
                 memset(prodId,0,strlen(prodId));
                 memset(qty,0,strlen(qty));
                 memset(price,0,strlen(price));
+
+                close(fd);
             }
         }
     
         else
         {
-            if (opCode == '1')
-                viewAllProducts(res);
+            if (opCode == '1'){
+                int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+
+                lockRecord(fd, 0, 0);
+                viewAllProducts(fd, res);
+                unlockRecord(fd, 0, 0);
+
+                close(fd);
+            }
             else if (opCode == '2')
             {
                 char prodId[20];
                 read(*nsd, prodId, 19);
                 charDetector(' ', prodId);
-                viewOneProduct(prodId, res);
+                printf("int prodid : %d\n", atoi(prodId));
+
+                int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
+
+                lockRecord(fd, 1, atoi(prodId));
+                viewOneProduct(fd, prodId, res);
+                unlockRecord(fd, 1, atoi(prodId));
+                
                 memset(prodId,0,strlen(prodId));
+                close(fd);
             }
             else if (opCode == '3')
             {

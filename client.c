@@ -9,12 +9,6 @@
 #include<string.h>
 #include<arpa/inet.h>
 
-// typedef struct request {
-//     char uid[8];
-//     int opCode;
-//     char 
-// }
-
 void keyWait(){
     printf("Enter any key to continue ->");
     getchar();
@@ -37,7 +31,7 @@ void spaceWrite(int sd, char str[], int len2){
 
 void charDetector(char c, char str[]){
     int i = 0;
-    for(; i<strlen(str); i++){
+    for(; i<strlen(str) + 1; i++){
         if(str[i] == c){
             str[i] = '\0';
             return;
@@ -173,12 +167,12 @@ int home(int sd, int time, char userId[], int isAdmin){
             scanf("%c", &temp);
             printf("Enter product name: ");
             scanf("%[^\n]", name);    
+            spaceWrite(sd, name, 19);
             printf("Enter product quantity: ");
             scanf("%s", qty);
+            spaceWrite(sd, qty, 9);
             printf("Enter product price: ");
             scanf("%s", price);
-            spaceWrite(sd, name, 19);
-            spaceWrite(sd, qty, 9);
             spaceWrite(sd, price, 9);
             return 1;
         }
@@ -195,13 +189,13 @@ int home(int sd, int time, char userId[], int isAdmin){
             scanf("%c", &temp);
             printf("Enter product id: ");
             scanf("%[^\n]", id);    
+            spaceWrite(sd, id, 19);
             printf("Enter new product quantity: ");
             scanf("%s", qty);
+            spaceWrite(sd, qty, 9); 
             printf("Enter new product price: ");
             scanf("%s", price);
-            spaceWrite(sd, id, 19);
-            spaceWrite(sd, qty, 9);
-            spaceWrite(sd, price, 9);
+            spaceWrite(sd, price, 9); 
             return 1;
         }
         if(choice == '6'){
@@ -251,10 +245,10 @@ int home(int sd, int time, char userId[], int isAdmin){
             scanf("%c", &temp);
             printf("Enter product id: ");
             scanf("%[^\n]", id);    
+            spaceWrite(sd, id, 19);
+
             printf("Enter product quantity: ");
             scanf("%s", qty);
-
-            spaceWrite(sd, id, 19);
             spaceWrite(sd, qty, 9);
             return 1;
         }
