@@ -18,9 +18,3 @@ typedef struct cart{
     char prodId[9];
     int quantity;
 }cart;
-
-typedef struct thread_data {
-    int *nsd;
-    char result1[10];
-    char result2[10];
-} thread_data;
