@@ -32,7 +32,7 @@ void spaceWrite(int sd, char str[], int len2){
 void charDetector(char c, char str[]){
     int i = 0;
     for(; i<strlen(str) + 1; i++){
-        if(str[i] == c){
+        if(str[i] == c || (int)str[i] == 127){
             str[i] = '\0';
             return;
         }
@@ -40,6 +40,7 @@ void charDetector(char c, char str[]){
     str[i - 1] = '\0';
 
 }
+
 
 void split(char str[], char params[][9])
 {
@@ -225,11 +226,17 @@ int home(int sd, int time, char userId[], int isAdmin){
         char choice;
         char temp;
         scanf("%c", &choice);
+
+        printf("choice %c\n", choice);
         if(choice == '1' || choice == '2' || choice == '3' || choice == '4'){
             spaceWrite(sd, userId, 8);
             char x[2] ={choice, ' '};
+            printf("x : %s\n", x);
             spaceWrite(sd, x, 2);
         }
+
+        printf("after write");
+
         if(choice == '1' || choice == '4') return 1;
 
         else if(choice == '2'){
@@ -267,6 +274,33 @@ int home(int sd, int time, char userId[], int isAdmin){
             if(strcmp(confirm, "yes") == 0){
                 spaceWrite(sd, userId, 8);
                 spaceWrite(sd, "6 ", 2);
+
+                char buff1[3], buff2[350], buff3[3], price[10];
+                read(sd, buff1, 2);
+                charDetector(' ', buff1);
+
+                if(buff1[0] == '1'){
+                    read(sd, buff2, 349);
+                    charDetector('#', buff2);
+                    printf("%s\n", buff2);
+                    printf("Enter the amount to pay: ");
+                    scanf("%s", price);
+                    spaceWrite(sd, price, 9);
+                    read(sd, buff3, 2);
+                    charDetector(' ', buff3);
+                    if(buff3[0] == '1'){
+                        FILE *fptr;
+                        fptr = fopen("./billLog.txt","w");
+                        fprintf(fptr, "Thank you for shopping with us!!\nHere is your bill\n\n");
+                        fprintf(fptr, "%s", buff2);
+                        fclose(fptr);
+                    }
+                }
+                memset(buff1, 0, sizeof(buff1));
+                memset(buff2, 0, sizeof(buff2));
+                memset(buff3, 0, sizeof(buff3));
+                memset(price, 0, sizeof(price));
+
             }
             else
                 return -1;
@@ -335,8 +369,9 @@ int main(){
             keyWait();
         }
         else{
+            printf("before home\n");
             int out = home(sd, 0, userId, isAdmin);
-
+            printf("FAILURE!!\n");
             if(out == -1) continue;
             else if(out == -999) {
                 loggedIn = 0;
@@ -351,6 +386,7 @@ int main(){
             }
         }
         memset(res,0,strlen(res));
+        printf("while done\n");
     }
     close(sd);
 }

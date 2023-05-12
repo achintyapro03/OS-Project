@@ -497,7 +497,7 @@ int editCart(char userId[], char condition, char prodId[], char qty[], char res[
     return 1;
 }
 
-int buy(char userId[], char res[])
+int buy(int *nsd, char userId[], char res[])
 {
     int fd1 = open("DB/cartTable", O_RDWR| O_CREAT, 0744);
     int count = 0;
@@ -505,7 +505,7 @@ int buy(char userId[], char res[])
 
     strcat(res, "\n$$$$$$$$$$$$$$$$$$$$$$$ BILL $$$$$$$$$$$$$$$$$$$$$$$\n\n");
     strcat(res, "Name\t\tqty\tPrice/Item\tPrice\n");
-    float totalPrice = 0.0;
+    int totalPrice = 0;
 
     while(read(fd1, &temp1, sizeof(cart))){
         if(strcmp(temp1.userId, userId) == 0 && temp1.quantity > 0){
@@ -539,18 +539,45 @@ int buy(char userId[], char res[])
             strcat(res, "\n");
                 
             char r[300];
-            // int x = editCart(userId, 'c', temp1.prodId, 0, r);
             close(fd2);
         }
     }
-    totalPrice = round(totalPrice * 100) / 100;
-    if(count == 0) strcpy(res, "You have no items in cart! Please add some items first\n");
+    close(fd1);
+    if(count == 0) {
+        write(*nsd, "0 ", 2);
+        strcpy(res, "You have no items in cart! Please add some items first\n");
+    }
     else{
-        char price[10];
-        gcvt(totalPrice, 10, price);
+        write(*nsd, "1 ", 2);
+        char price1[10];
+        sprintf(price1, "%d", totalPrice);
         strcat(res, "\n\t\t\t\tTotal : ");
-        strcat(res, price);
+        strcat(res, price1);
         strcat(res, "\n");
+
+        strcat(res, "#");
+        spaceWrite(*nsd, res, 349);
+        char price2[10];
+        read(*nsd, price2, 9);
+        charDetector(' ', price2);
+
+        if(totalPrice == atoi(price2)) {
+            write(*nsd, "1 ", 2);
+            strcpy(res, "Transaction completed successfully!! Please check the \"billLog.txt\" file for the bill.\n");
+            char r[300];
+            int fd3 = open("DB/cartTable", O_RDWR| O_CREAT, 0744);
+            cart temp3;
+            while(read(fd3, &temp3, sizeof(cart)))
+                if(strcmp(temp3.userId, userId) == 0 && temp3.quantity > 0)
+                    editCart(userId, 'c', temp3.prodId, 0, r);
+
+            close(fd3);
+        }
+        else {
+            write(*nsd, "0 ", 2);
+            strcpy(res, "Transaction failed :(. Please try again\n");
+        }
+        
     }
 }
 
@@ -765,7 +792,7 @@ void processRequest(int *nsd, char res[])
             }
             else if (opCode == '6')
             {
-                buy(userId, res);
+                buy(nsd, userId, res);
             }
         }
     }

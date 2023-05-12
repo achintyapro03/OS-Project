@@ -1,0 +1,11 @@
+Thank you for shopping with us!!
+Here is your bill
+
+
+$$$$$$$$$$$$$$$$$$$$$$$ BILL $$$$$$$$$$$$$$$$$$$$$$$
+
+Name		qty	Price/Item	Price
+cat		120	40		4800
+ball		5	200		1000
+
+				Total : 5800
