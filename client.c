@@ -10,7 +10,7 @@
 #include<arpa/inet.h>
 
 void keyWait(){
-    printf("Enter any key to continue ->");
+    printf("Press enter to continue ->");
     getchar();
     getchar();
 }
@@ -148,7 +148,7 @@ int home(int sd, int time, char userId[], int isAdmin){
         char choice;
         char temp;
         scanf("%c", &choice);
-        if(choice == '1' || choice == '2' || choice == '3' || choice == '4' || choice == '5'){
+        if(choice == '1' || choice == '2' || choice == '3' || choice == '4' || choice == '5' || choice == '7'){
             spaceWrite(sd, userId, 8);
             char x[2] ={choice, ' '};
             spaceWrite(sd, x, 2);
@@ -227,15 +227,11 @@ int home(int sd, int time, char userId[], int isAdmin){
         char temp;
         scanf("%c", &choice);
 
-        printf("choice %c\n", choice);
         if(choice == '1' || choice == '2' || choice == '3' || choice == '4'){
             spaceWrite(sd, userId, 8);
             char x[2] ={choice, ' '};
-            printf("x : %s\n", x);
             spaceWrite(sd, x, 2);
         }
-
-        printf("after write");
 
         if(choice == '1' || choice == '4') return 1;
 
@@ -327,7 +323,7 @@ int main(){
     sd = socket(PF_UNIX,SOCK_STREAM,0);
     server.sin_addr.s_addr = inet_addr("127.0.0.1");  
     server.sin_family = AF_UNIX;
-    server.sin_port = htonl(5000);
+    server.sin_port = htons(5000);
 
     if(connect(sd,(struct sockaddr*)(&server),sizeof(server))==-1){
         perror("Failed to connect\nExiting");
@@ -348,7 +344,6 @@ int main(){
             ((!out) ? logReg(sd, 1) : logReg(sd, 2));
             read(sd, res, 349);
             charDetector('#', res);
-            printf("%s\n", res);
             if(res[0] != '-'){
                 printf("You have successfully logged in\n");
                 loggedIn = 1;
@@ -369,9 +364,7 @@ int main(){
             keyWait();
         }
         else{
-            printf("before home\n");
             int out = home(sd, 0, userId, isAdmin);
-            printf("FAILURE!!\n");
             if(out == -1) continue;
             else if(out == -999) {
                 loggedIn = 0;
@@ -386,7 +379,6 @@ int main(){
             }
         }
         memset(res,0,strlen(res));
-        printf("while done\n");
     }
     close(sd);
 }

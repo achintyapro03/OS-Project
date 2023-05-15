@@ -37,7 +37,6 @@ void idGenerator(int cond, char id[]){
             count++;
         }
 
-        printf("count : %d\n",count);
         count--;
         int x = count;
         int len = 0;
@@ -209,7 +208,6 @@ int viewOneProduct(int fd, char prodId[], char res[])
     }
 
     product temp;
-    printf("offset: %d\n", atoi(prodId));
     lseek(fd, atoi(prodId) * sizeof(product), SEEK_SET);
     read(fd, &temp, sizeof(product));
     
@@ -312,7 +310,6 @@ int updateProduct(int fd, char prodId[], char qty[], char price[], char res[])
         strcpy(res, "Opps!! Product not found!\n");
         return 0;
     }
-    printf("in updateProduct\n");
     product temp;
     lseek(fd, atoi(prodId) * sizeof(product), SEEK_SET);
     read(fd, &temp, sizeof(product));
@@ -588,21 +585,12 @@ int isAdmin(char userId[])
     user temp;
     while (read(fd, &temp, sizeof(user)))
     {
-        printf("my user id len = %ld\n", strlen(userId));
-        printf("user id len = %ld\n", strlen(temp.userId));
-
         if (strcmp(temp.userId, userId) == 0)
         {
             int x = temp.isAdmin;
             close(fd);
             return x;
         }
-    }
-}
-
-void testFunction(){
-    for(int i = 0; i < 10; i++){
-        printf("%i\n", (i + 1) * (i + 1));
     }
 }
 
@@ -613,15 +601,11 @@ void processRequest(int *nsd, char res[])
 
     read(*nsd, &userId, 8);
     read(*nsd, &buff, 2);
-    printf("userId: %s\n", userId);
     charDetector(' ', userId);
     charDetector(' ', buff);
-    printf("userId: %s\n", userId);
-    printf("%s\n", buff);
 
     opCode = buff[0];
 
-    printf("khalibhali\n");
     if (strcmp(userId, "-1") == 0)
     {
         // login
@@ -642,7 +626,6 @@ void processRequest(int *nsd, char res[])
     {
         if (isAdmin(userId))
         {
-            printf("yes Admin!!\n");
             if (opCode == '1'){
                 int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
                 lockRecord(fd, 0, 0);
@@ -727,6 +710,17 @@ void processRequest(int *nsd, char res[])
 
                 close(fd);
             }
+            else if(opCode == '7'){
+                FILE *fptr;
+                char buff[300];
+                fptr = fopen("./stockLog.txt","w");
+                fprintf(fptr, "ACHI MART Product stock level\n\n");
+                int fd = open("DB/productTable", O_RDWR | O_CREAT, 0744);
+                viewAllProducts(fd, buff);
+                close(fd);
+                fprintf(fptr, "%s", buff);
+                fclose(fptr);
+            }
         }
     
         else
@@ -745,8 +739,7 @@ void processRequest(int *nsd, char res[])
                 char prodId[20];
                 read(*nsd, prodId, 19);
                 charDetector(' ', prodId);
-                printf("int prodid : %d\n", atoi(prodId));
-
+ 
                 int fd = open("DB/productTable", O_RDWR| O_CREAT, 0744);
 
                 lockRecord(fd, 1, atoi(prodId));
@@ -806,7 +799,6 @@ int linker(int *nsd)
         char res[350];
         processRequest(nsd, res);
         strcat(res, "#");
-        printf("%s", res);
         spaceWrite(*nsd, res, 349);
         memset(res,0,strlen(res));
     }
@@ -821,7 +813,7 @@ int main()
 
     server.sin_family = AF_UNIX;
     server.sin_addr.s_addr = inet_addr("127.0.0.1");
-    server.sin_port = htonl(5000);
+    server.sin_port = htons(5000);
     bind(sd, (struct sockaddr *)&server, sizeof(server));
 
     listen(sd, 5);

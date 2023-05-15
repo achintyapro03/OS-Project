@@ -10,8 +10,8 @@ int main(){
     user u;
 
     u.isAdmin = 1;
-    strcpy(u.userName, "a");
-    strcpy(u.password, "p");
+    strcpy(u.userName, "admin");
+    strcpy(u.password, "password");
     strcpy(u.userId, "00000000");    
 
     int fd = open("DB/userTable", O_WRONLY );
