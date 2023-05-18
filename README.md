@@ -1,5 +1,5 @@
 # OS-Project
-\br
+
 This project is a terminal oriented project which implements client – server based online
 store application. The user / admin can login from the client portal and the server is
 responsible for handling the requests sent by the client. The connection between the client
